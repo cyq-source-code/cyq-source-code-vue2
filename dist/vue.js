@@ -50,11 +50,65 @@
     return typeof key === "symbol" ? key : String(key);
   }
 
+  // 重写数组的部分方法
+
+  var oldArrayProto = Array.prototype;
+  var newArrayProto = Object.create(oldArrayProto);
+
+  // 7种改变原数组的方法
+  // concat、slice不改变原数组
+  var methods = ["push", "pop", "shift", "unshift", "reverse", "sort", "splice"];
+  methods.forEach(function (method) {
+    // 重写数组方法
+    newArrayProto[method] = function () {
+      var _oldArrayProto$method;
+      console.log(method);
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+      var result = (_oldArrayProto$method = oldArrayProto[method]).call.apply(_oldArrayProto$method, [this].concat(args)); // 内部调用原来的方法、函数劫持（切片编程）
+
+      // 需要对新增的数据，再进行劫持
+      var inserted; // 新增的内容
+      var ob = this.__ob__;
+      switch (method) {
+        case "push":
+        case "unshift":
+          // arr.push(1,2,3)、 arr.unshift(4,5,6)
+          inserted = args;
+          break;
+        case "splice":
+          // arr.splice(1, 2, { a: 2 });
+          inserted = args.slice(2);
+          break;
+      }
+      if (inserted) {
+        // 对新增的内容再次进行观测
+        ob.observeArray(inserted);
+      }
+      return result;
+    };
+  });
+
   var Observer = /*#__PURE__*/function () {
     function Observer(data) {
       _classCallCheck(this, Observer);
       // Object.defineProperty只能劫持已经存在的属性（vue2为了解决这 单独写了一些API $set、$delete......）
-      this.walk(data);
+
+      Object.defineProperty(data, "__ob__", {
+        value: this,
+        enumerable: false // 将__ob__变成不可枚举，（否则在walk()会进入死循环）
+      });
+      // data.__ob__ = this; // 1.通过__ob__访问方法属性、2.给数据添加了一个标识，存在__ob__证明劫持过了
+
+      // 判断是否为数组 - 单独处理
+      if (Array.isArray(data)) {
+        data.__proto__ = newArrayProto; // 重写数组的方法
+
+        this.observeArray(data); // 如果数组中放油对象，可以监听对象的变化
+      } else {
+        this.walk(data);
+      }
     }
     // 循环对象 对属性依次劫持
     _createClass(Observer, [{
@@ -63,6 +117,14 @@
         // "重新定义" 属性---性能差
         Object.keys(data).forEach(function (key) {
           return defineReactive(data, key, data[key]);
+        });
+      }
+    }, {
+      key: "observeArray",
+      value: function observeArray(data) {
+        // 劫持数组 [1, 2, { a: 2 }]
+        data.forEach(function (item) {
+          return observe(item);
         });
       }
     }]);
@@ -89,6 +151,11 @@
 
     if (_typeof(data) !== "object" || data == null) {
       return; // 判断是不是对象
+    }
+
+    if (data.__ob__ instanceof Observer) {
+      // 这个对象被劫持过了
+      return data.__ob__;
     }
 
     //如果一个对象被劫持过了，就不需要再劫持了（要判断一个对象是否被劫持过，可以添加一个实例，用实例判断是否劫持过）

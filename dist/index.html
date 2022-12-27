@@ -9,7 +9,22 @@
   <body>
     <script src="./vue.js"></script>
     <script>
-      console.log(Vue);
+      // 响应式数据，可以监控到数据的变化
+      const vm = new Vue({
+        // 代理数据
+        data() {
+          return {
+            name: "cyq",
+            age: 24,
+            info: {
+              address: "adf",
+            },
+          };
+        },
+      });
+      console.log(vm);
+      console.log(vm.name);
+      console.log(vm.info.address);
     </script>
   </body>
 </html>

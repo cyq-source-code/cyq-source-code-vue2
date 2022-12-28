@@ -1,4 +1,5 @@
 import { compileToFunction } from "./compiler";
+import { mountComponent } from "./lifecycle";
 import { initState } from "./state";
 
 // Vue 的 init() 方法
@@ -33,7 +34,6 @@ export function initMixin(Vue) {
           template = ops.template; // 用户选项写了 template 用 template
         }
       }
-      console.log(template);
 
       if (template) {
         // 对模版进行编译
@@ -42,6 +42,7 @@ export function initMixin(Vue) {
       }
     }
 
-    ops.render; // 最终的render方法
+    mountComponent(vm, el); // 组件的挂载
+    // ops.render; // 最终的render方法
   };
 }

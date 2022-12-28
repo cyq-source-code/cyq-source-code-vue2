@@ -7,9 +7,9 @@
     <title>Document</title>
   </head>
   <body>
-    <div id="app" style="color: red; font-size: 20px">
+    <div id="app" style="color: red; background: yellow">
       <div class="box">a{{name}}b</div>
-      <div>{{age}}</div>
+      <div style="font-size: 20px; color: aquamarine">{{age}}</div>
       <input type="text" />
     </div>
     <script src="./vue.js"></script>
@@ -29,6 +29,12 @@
         // },
       });
       vm.$mount("#app");
+
+      setTimeout(() => {
+        vm.name = "CYQ";
+        vm._update(vm._render()); // 重新渲染页面
+      }, 2000);
+
       //1.模板引擎  性能差需要正贝则匹配替换   1.0的时候没有引入虚拟D0M的改变
       //2.采用虚拟Dom，数据变化后比较虚拟DOM的差异最后更新需要更新的地方
       //3.核心就是我们需要将模板变成我们的js语法，通过js语法生成虚拟D0M

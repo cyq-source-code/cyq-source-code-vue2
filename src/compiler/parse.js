@@ -116,6 +116,5 @@ export function parseHTML(html) {
       }
     }
   }
-  console.log(root);
   return root;
 }

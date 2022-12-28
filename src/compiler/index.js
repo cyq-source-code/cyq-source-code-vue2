@@ -7,7 +7,7 @@ function genProps(attrs) {
       let obj = {};
       attr.value.split(";").forEach((item) => {
         let [key, value] = item.split(":");
-        obj[key] = value;
+        obj[key.trim()] = value.trim();
       });
       attr.value = obj;
     }
@@ -59,10 +59,16 @@ function codegen(ast) {
 
 // 对模版进行编译处理
 export function compileToFunction(template) {
-  console.log(template);
   // 1.将 template 转化成 ast 语法树
   let ast = parseHTML(template);
-  console.log(ast);
+
   // 2.生成render方法，（render方法执行后的返回结果就是虚拟DOM）
-  console.log(codegen(ast));
+
+  // 模版引擎的实现原理---with + new Function
+  let code = codegen(ast);
+  // _c('div',{id:"app",style:{"color":" red"," font-size":" 20px"}},_c('div',{class:"box"},_v("a"+_s(name)+"b")),_c('div',null,_v(_s(age))),_c('input',{type:"text"}))
+  code = `with(this){return ${code}}`;
+  let render = new Function(code); // 根据代码生成render函数
+
+  return render;
 }

@@ -11,7 +11,6 @@ let methods = ["push", "pop", "shift", "unshift", "reverse", "sort", "splice"];
 methods.forEach((method) => {
   // 重写数组方法
   newArrayProto[method] = function (...args) {
-    console.log(method);
     const result = oldArrayProto[method].call(this, ...args); // 内部调用原来的方法、函数劫持（切片编程）
 
     // 需要对新增的数据，再进行劫持

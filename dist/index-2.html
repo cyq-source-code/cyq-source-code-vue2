@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app" style="color: red; font-size: 20px">
+      <div class="box">a{{name}}b</div>
+      <div>{{age}}</div>
+      <input type="text" />
+    </div>
+    <script src="./vue.js"></script>
+    <script>
+      const vm = new Vue({
+        // 代理数据
+        data() {
+          return {
+            name: "cyq",
+            age: 24,
+          };
+        },
+        // el: "#app",
+        // template: "<div>123<div>",
+        // render(h) {
+        //   return h("div", {});
+        // },
+      });
+      vm.$mount("#app");
+      //1.模板引擎  性能差需要正贝则匹配替换   1.0的时候没有引入虚拟D0M的改变
+      //2.采用虚拟Dom，数据变化后比较虚拟DOM的差异最后更新需要更新的地方
+      //3.核心就是我们需要将模板变成我们的js语法，通过js语法生成虚拟D0M
+
+      //从一个东西变成另一个东西语法之间的转化  es6->es5
+      //css压缩   我们需要先变成语法树在重新组装代码成为新的语法 将template语法转换成render函数
+    </script>
+  </body>
+</html>

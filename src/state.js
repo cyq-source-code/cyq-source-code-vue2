@@ -1,4 +1,4 @@
-import { observe } from "./observe/index.js";
+import { observe } from "./observe";
 
 export function initState(vm) {
   const ops = vm.$options; // 获取所有用户选项

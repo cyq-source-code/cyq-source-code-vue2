@@ -42,7 +42,98 @@ class Watcher {
 
   // 重新渲染
   update() {
+    // this.get();
+    queueWatcher(this); // 把当前watcher暂存起来
+  }
+
+  run() {
     this.get();
+  }
+}
+
+let queue = [];
+let has = {};
+let pending = false; // 防抖
+
+function flushSchedulerQueue() {
+  let flushQueue = queue.slice(0);
+  queue = [];
+  has = {};
+  pending = false;
+  flushQueue.forEach((q) => q.run()); // 再刷新的过程中可能还有新的watcher,重新放大queue中
+}
+
+function queueWatcher(watcher) {
+  const id = watcher.id;
+  if (!has[id]) {
+    queue.push(watcher);
+    has[id] = true;
+    // 不管update 执行多少次，但是最终只执行一轮刷新
+    if (!pending) {
+      setTimeout(flushSchedulerQueue, 0);
+      pending = true;
+    }
+    console.log(queue);
+  }
+}
+
+let callbacks = [];
+let waiting = false;
+
+function flushCallbacks() {
+  let cbs = callbacks.slice(0);
+  console.log(cbs);
+  callbacks = [];
+  waiting = false;
+  cbs.forEach((cb) => cb()); // 按照顺序依次执行
+}
+
+//vue2-源码中 nextTick没有直接使用某个api而是采用优雅降级的方式
+//内部先采用的是promise（ie不兼容）---> Mutationobserver(h5的api) ---> 可以考虑ie专享的setImmediate ---> setTimeout
+
+// let timerFunc;
+// if (Promise) {
+//   console.log(1);
+//   //   timerFunc = () => {
+//   //     Promise.resolve().then(flushCallbacks);
+//   //   };
+//   var p_1 = Promise.resolve();
+//   timerFunc = function () {
+//     console.log(p_1);
+//     p_1.then(flushCallbacks);
+//   };
+// } else if (MutationObserver) {
+//   console.log(2);
+//   let observe = new MutationObserver(flushCallbacks); // 这里传入的回掉是异步执行的
+//   let textNode = document.createTextNode(1);
+//   observe.observe(textNode, {
+//     characterData: true,
+//   });
+//   timerFunc = () => {
+//     textNode.textContent = 2;
+//   };
+// } else if (setImmediate) {
+//   console.log(3);
+
+//   timerFunc = () => {
+//     setImmediate(flushCallbacks);
+//   };
+// } else {
+//   console.log(4);
+
+//   timerFunc = () => {
+//     setTimeout(flushCallbacks);
+//   };
+// }
+
+export function nextTick(cb) {
+  callbacks.push(cb); // 维护nextTick中的callback方法
+  if (!waiting) {
+    // 最后一起刷新
+    setTimeout(flushCallbacks, 0); // ---> 好用
+    // Promise.resolve().then(flushCallbacks); // ---> 不好用（有bug,未解决,应该用这个）
+    // timerFunc(); // 做兼容性处理
+    waiting = true;
   }
 }
 

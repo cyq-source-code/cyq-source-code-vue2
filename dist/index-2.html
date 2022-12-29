@@ -13,6 +13,7 @@
       <input type="text" />
     </div>
     <script src="./vue.js"></script>
+    <!-- <script src="../vue2.7.js"></script> -->
     <script>
       const vm = new Vue({
         // 代理数据
@@ -30,10 +31,19 @@
       });
       vm.$mount("#app");
 
-      setTimeout(() => {
-        vm.name = "CYQ";
-        // vm._update(vm._render()); // 重新渲染页面
-      }, 2000);
+      // setTimeout(() => {
+      //   vm.name = "CYQ";
+      //   vm.name = "CYQ123";
+      //   // vm._update(vm._render()); // 重新渲染页面
+      // }, 2000);
+
+      vm.name = "CYQ";
+      vm.age = 100;
+
+      // nextTick 不是创建了一个异步任务，而是将这个任务维护到了队列中而已
+      vm.$nextTick(() => {
+        console.log(document.querySelector(".box").innerHTML); // 同步获取
+      });
 
       //1.模板引擎  性能差需要正贝则匹配替换   1.0的时候没有引入虚拟D0M的改变
       //2.采用虚拟Dom，数据变化后比较虚拟DOM的差异最后更新需要更新的地方

@@ -1,4 +1,5 @@
 import { newArrayProto } from "./array";
+import Dep from "./dep";
 
 class Observer {
   constructor(data) {
@@ -34,10 +35,14 @@ class Observer {
 export function defineReactive(target, key, value) {
   // 如果 value 还是对象 递归。
   observe(value);
-
+  let dep = new Dep(); // 每个属性都有对应的dep
   Object.defineProperty(target, key, {
     // 取值的时候会触发 get
     get() {
+      if (Dep.target) {
+        dep.depend(); // 让这个属性的收集器记住当前的watcher
+      }
+
       return value;
     },
     // 修改的时候会触发 set
@@ -45,6 +50,7 @@ export function defineReactive(target, key, value) {
       if (newValue === value) return;
       observe(newValue); // 新值可能是 对象
       value = newValue;
+      dep.notify(); // 通知更新
     },
   });
 }

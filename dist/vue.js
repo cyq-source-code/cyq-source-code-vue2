@@ -99,7 +99,7 @@
     return typeof key === "symbol" ? key : String(key);
   }
 
-  var ncname = "[a-z A-Z_][\\-\\.0-9_a-zA-Z]*";
+  var ncname = "[a-zA-Z_][\\-\\.0-9_a-zA-Z]*";
   var qnameCapture = "((?:".concat(ncname, "\\:)?").concat(ncname, ")");
   var startTagOpen = new RegExp("^<".concat(qnameCapture)); //匹配到的分组是一个标签名<xxx匹配到的是开始标签的名字
   var endTag = new RegExp("^<\\/".concat(qnameCapture, "[^>]*>")); //匹配的是</xxxx>最终匹配到的分组就是结束标签的名字
@@ -294,6 +294,84 @@
     return render;
   }
 
+  var id$1 = 0;
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+      this.id = id$1++; // 属性的dep 要收集watcher
+      this.subs = []; // 存放当前属性对应的watcher有哪些
+    }
+    _createClass(Dep, [{
+      key: "depend",
+      value: function depend() {
+        // this.subs.push(Dep.target); // 会重复收集
+
+        Dep.target.addDep(this); // 让 watcher 记住 dep
+      }
+    }, {
+      key: "addSub",
+      value: function addSub(watcher) {
+        this.subs.push(watcher);
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        }); // 告诉 watcher 要更新了
+      }
+    }]);
+    return Dep;
+  }();
+  Dep.target = null;
+
+  var id = 0;
+
+  // 不同的组件有不同的watcher
+  var Watcher = /*#__PURE__*/function () {
+    function Watcher(vm, fn, options) {
+      _classCallCheck(this, Watcher);
+      this.id = id++;
+      this.renderWatcher = options; // 是一个渲染watcher
+
+      this.getter = fn; // getter意味着调用这个函数可以发生取值
+
+      this.deps = []; // 计算属性 ...... 其他清理工作
+
+      this.depsId = new Set();
+      this.get();
+    }
+    // 一个组件 对应多个属性 ，重复属性不用再记录
+    _createClass(Watcher, [{
+      key: "addDep",
+      value: function addDep(dep) {
+        var id = dep.id;
+        if (!this.depsId.has(id)) {
+          this.deps.push(dep);
+          this.depsId.add(id);
+          dep.addSub(this); // wather 已经记住了dep 并且去重了，此时让dep也记住watcher
+        }
+      }
+    }, {
+      key: "get",
+      value: function get() {
+        Dep.target = this; // 静态属性
+
+        this.getter(); // 会去 vm 上取值
+
+        Dep.target = null; // 渲染完 就清空
+      }
+
+      // 重新渲染
+    }, {
+      key: "update",
+      value: function update() {
+        this.get();
+      }
+    }]);
+    return Watcher;
+  }(); //需要给每个属性增加一个dep,目的就是收集watcher
+
   // h() _c()
   function createElementVNode(vm, tag, data) {
     var _data;
@@ -399,7 +477,12 @@
 
     // 1. 调用render方法产生虚拟节点 虚拟DOM
 
-    vm._update(vm._render()); // vm.$options.render 虚拟节点
+    var updateCompontent = function updateCompontent() {
+      vm._update(vm._render()); // vm.$options.render 虚拟节点
+    };
+
+    console.log(new Watcher(vm, updateCompontent, true));
+
     // 2. 根据虚拟DOM产生真实DOM
     // 3. 插入到元素el
   }
@@ -495,9 +578,14 @@
   function defineReactive(target, key, value) {
     // 如果 value 还是对象 递归。
     observe(value);
+    var dep = new Dep(); // 每个属性都有对应的dep
     Object.defineProperty(target, key, {
       // 取值的时候会触发 get
       get: function get() {
+        if (Dep.target) {
+          dep.depend(); // 让这个属性的收集器记住当前的watcher
+        }
+
         return value;
       },
       // 修改的时候会触发 set
@@ -505,9 +593,11 @@
         if (newValue === value) return;
         observe(newValue); // 新值可能是 对象
         value = newValue;
+        dep.notify(); // 通知更新
       }
     });
   }
+
   function observe(data) {
     // 对 data 对象 进行 数据劫持
 

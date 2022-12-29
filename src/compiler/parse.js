@@ -1,4 +1,4 @@
-const ncname = `[a-z A-Z_][\\-\\.0-9_a-zA-Z]*`;
+const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z]*`;
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`;
 const startTagOpen = new RegExp(`^<${qnameCapture}`); //匹配到的分组是一个标签名<xxx匹配到的是开始标签的名字
 const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`); //匹配的是</xxxx>最终匹配到的分组就是结束标签的名字

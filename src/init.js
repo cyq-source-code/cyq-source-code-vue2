@@ -1,6 +1,7 @@
 import { compileToFunction } from "./compiler";
-import { mountComponent } from "./lifecycle";
+import { callHook, mountComponent } from "./lifecycle";
 import { initState } from "./state";
+import { mergeOptions } from "./utils";
 
 // Vue 的 init() 方法
 export function initMixin(Vue) {
@@ -9,10 +10,16 @@ export function initMixin(Vue) {
     // options 用户配置
     // $data、$attr、$nextTick ......
     const vm = this;
-    vm.$options = options; // 将用户选项挂载到实例上
+    // vm.$options = options; // 将用户选项挂载到实例上
+    vm.$options = mergeOptions(this.constructor.options, options); // 合并
+    console.log(vm.$options);
+
+    callHook(vm, "beforeCreated");
 
     // 初始化状态
     initState(vm);
+
+    callHook(vm, "created");
 
     if (options.el) {
       vm.$mount(options.el);

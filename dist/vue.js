@@ -4,6 +4,59 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  var strats = {};
+  var LIFECYCLE = ["beforeCreate", "created"];
+  LIFECYCLE.forEach(function (hook) {
+    strats[hook] = function (p, c) {
+      // {} {created:function(){}} ===> {created:[fn]}
+      // {created:[fn]} {created:function(){}} ===> {created:[fn,fn]}
+      if (c) {
+        if (p) {
+          // 父亲有,儿子有，合并
+          return p.concat(c);
+        } else {
+          // 儿子有，父亲没有，儿子包装成数组（作为后续父亲）
+          return [c];
+        }
+      } else {
+        // 儿子没有，直接返回父亲
+        return p;
+      }
+    };
+  });
+  function mergeOptions(parent, child) {
+    var options = {};
+    for (var key in parent) {
+      mergeFiled(key);
+    }
+    for (var _key in child) {
+      if (!parent.hasOwnProperty(_key)) {
+        mergeFiled(_key);
+      }
+    }
+    function mergeFiled(key) {
+      // 策略模式 用策略减少 if else 判断
+      if (strats[key]) {
+        options[key] = strats[key](parent[key], child[key]);
+      } else {
+        // 如果不在策略中，以儿子为主
+        options[key] = child[key] || parent[key]; // 优先采用儿子
+      }
+    }
+
+    return options;
+  }
+
+  function initGloablAPI(Vue) {
+    // 静态方法
+    Vue.options = {};
+    Vue.mixin = function (mixin) {
+      // 我们期望将用户的选项 和 全局的 options 进行合并
+      this.options = mergeOptions(this.options, mixin);
+      return this;
+    };
+  }
+
   function _iterableToArrayLimit(arr, i) {
     var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"];
     if (null != _i) {
@@ -589,6 +642,16 @@
   // render函数会产生虚拟节点（虚拟DOM）(使用响应式数据)
   // 根据生成的虚拟节点创造真实DOM
 
+  // 调用钩子函数
+  function callHook(vm, hook) {
+    var handles = vm.$options[hook];
+    if (handles) {
+      handles.forEach(function (handle) {
+        return handle.call(vm);
+      });
+    }
+  }
+
   // 重写数组的部分方法
 
   var oldArrayProto = Array.prototype;
@@ -744,10 +807,14 @@
       // options 用户配置
       // $data、$attr、$nextTick ......
       var vm = this;
-      vm.$options = options; // 将用户选项挂载到实例上
+      // vm.$options = options; // 将用户选项挂载到实例上
+      vm.$options = mergeOptions(this.constructor.options, options); // 合并
+      console.log(vm.$options);
+      callHook(vm, "beforeCreated");
 
       // 初始化状态
       initState(vm);
+      callHook(vm, "created");
       if (options.el) {
         vm.$mount(options.el);
       }
@@ -787,6 +854,7 @@
   Vue.prototype.$nextTick = nextTick;
   initMixin(Vue); // 扩展了init方法
   initLifeCycle(Vue);
+  initGloablAPI(Vue);
 
   return Vue;
 

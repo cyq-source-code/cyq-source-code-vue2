@@ -9,6 +9,31 @@ export function initState(vm) {
   if (ops.computed) {
     initComputed(vm);
   }
+  if (ops.watch) {
+    initWatch(vm);
+  }
+}
+
+function initWatch(vm) {
+  let watch = vm.$options.watch;
+  for (let key in watch) {
+    const handler = watch[key]; // 字符串、数组、函数、（对象暂不实现）
+    if (Array.isArray(handler)) {
+      for (let i = 0; i < handler.length; i++) {
+        createWatcher(vm, key, handler[i]);
+      }
+    } else {
+      createWatcher(vm, key, handler);
+    }
+  }
+}
+
+function createWatcher(vm, key, handler) {
+  if (typeof handler === "string") {
+    handler = vm[handler];
+  } else {
+  }
+  return vm.$watch(key, handler);
 }
 
 function proxy(vm, target, key) {
@@ -79,4 +104,3 @@ function createComputedGetter(key) {
     return watcher.value;
   };
 }
-

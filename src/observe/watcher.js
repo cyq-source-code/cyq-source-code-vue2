@@ -9,12 +9,20 @@ let id = 0;
 
 // 不同的组件有不同的watcher
 class Watcher {
-  constructor(vm, fn, options) {
+  constructor(vm, exprOrFn, options, cb) {
     this.id = id++;
 
     this.renderWatcher = options; // 是一个渲染watcher
 
-    this.getter = fn; // getter意味着调用这个函数可以发生取值
+    if (typeof exprOrFn === "string") {
+      this.getter = function () {
+        return vm[exprOrFn];
+      };
+    } else {
+      this.getter = exprOrFn; // getter意味着调用这个函数可以发生取值
+    }
+
+    this.cb = cb;
 
     this.deps = []; // 计算属性 ...... 其他清理工作
 
@@ -23,8 +31,9 @@ class Watcher {
     this.lazy = options.lazy;
     this.dirty = this.lazy; // 缓存值
     this.vm = vm;
+    this.user = options.user; // 标识是否是用户的watcher
 
-    this.lazy ? undefined : this.get();
+    this.value = this.lazy ? undefined : this.get();
   }
   // 一个组件 对应多个属性 ，重复属性不用再记录
   addDep(dep) {
@@ -40,7 +49,7 @@ class Watcher {
     this.value = this.get(); // 获取到用户函数的返回值，并且标记为脏
     this.dirty = false;
   }
- 
+
   get() {
     // Dep.target = this; // 静态属性
     pushTarget(this);
@@ -72,7 +81,11 @@ class Watcher {
   }
 
   run() {
-    this.get();
+    let oldValue = this.value;
+    let newValue = this.get();
+    if (this.user) {
+      this.cb.call(this.vm, newValue, oldValue);
+    }
   }
 }
 

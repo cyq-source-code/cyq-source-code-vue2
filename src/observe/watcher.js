@@ -3,7 +3,7 @@
 // dep记住这个watcher即可，稍后属性变化了可以到对应的dep中存放的watcher进行重新渲染
 // 观察者模式
 
-import Dep from "./dep";
+import { popTarget, pushTarget } from "./dep";
 
 let id = 0;
 
@@ -20,7 +20,11 @@ class Watcher {
 
     this.depsId = new Set();
 
-    this.get();
+    this.lazy = options.lazy;
+    this.dirty = this.lazy; // 缓存值
+    this.vm = vm;
+
+    this.lazy ? undefined : this.get();
   }
   // 一个组件 对应多个属性 ，重复属性不用再记录
   addDep(dep) {
@@ -32,18 +36,39 @@ class Watcher {
     }
   }
 
+  evaluate() {
+    this.value = this.get(); // 获取到用户函数的返回值，并且标记为脏
+    this.dirty = false;
+  }
+ 
   get() {
-    Dep.target = this; // 静态属性
+    // Dep.target = this; // 静态属性
+    pushTarget(this);
 
-    this.getter(); // 会去 vm 上取值
+    let value = this.getter.call(this.vm); // 会去 vm 上取值
 
-    Dep.target = null; // 渲染完 就清空
+    // Dep.target = null; // 渲染完 就清空
+    popTarget();
+
+    return value;
+  }
+
+  depend() {
+    let i = this.deps.length;
+    while (i--) {
+      this.deps[i].depend(); // 让计算属性watcher 也收集渲染wtcher
+    }
   }
 
   // 重新渲染
   update() {
-    // this.get();
-    queueWatcher(this); // 把当前watcher暂存起来
+    if (this.lazy) {
+      // 如果是计算属性，依赖的值变化了 就标识计算属性是脏值
+      this.dirty = true;
+    } else {
+      // this.get();
+      queueWatcher(this); // 把当前watcher暂存起来
+    }
   }
 
   run() {
@@ -73,7 +98,6 @@ function queueWatcher(watcher) {
       setTimeout(flushSchedulerQueue, 0);
       pending = true;
     }
-    console.log(queue);
   }
 }
 
